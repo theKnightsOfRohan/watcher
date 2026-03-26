@@ -32,6 +32,7 @@ bool starts_with(char *str, const char *prefix);
 void handle_unknown_file(char *fname);
 void usage();
 void update_watch(struct watch *watch, int to_update);
+void run_command(char *command);
 
 int main(int argc, char **argv) {
     printf("argc: %d\n", argc);
@@ -49,6 +50,7 @@ int main(int argc, char **argv) {
     watch.fd = inotify_init();
     watch.fds = malloc(sizeof(int) * args.len);
     watch.files = args.file_list;
+    watch.cmd = args.cmd;
 
     for (int i = 0; i < args.len; i++) {
         watch.fds[i] =
@@ -60,7 +62,6 @@ int main(int argc, char **argv) {
     char buf[4096];
     struct inotify_event *event;
     size_t readlen;
-
     for (;;) {
         readlen = read(watch.fd, buf, sizeof(buf));
         if (readlen == -1) {
@@ -78,12 +79,15 @@ int main(int argc, char **argv) {
             switch (event->mask) {
             case IN_MODIFY:
                 printf("Watched file %d modified\n", event->wd);
+                run_command(watch.cmd);
                 break;
             case IN_CLOSE_WRITE:
                 printf("Watched file %d closed\n", event->wd);
+                run_command(watch.cmd);
                 break;
             case IN_DELETE_SELF:
                 printf("Watched file %d deleted\n", event->wd);
+                run_command(watch.cmd);
                 break;
             case IN_IGNORED:
                 printf("Watched file %d ignored\n", event->wd);
@@ -97,6 +101,11 @@ int main(int argc, char **argv) {
     }
 
     return 0;
+}
+
+void run_command(char *cmd) {
+    int err = system(cmd);
+    printf("cmd \"%s\" ran with err %d and errno %d\n", cmd, err, errno);
 }
 
 void update_watch(struct watch *watch, int to_update) {

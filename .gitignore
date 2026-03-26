@@ -63,3 +63,5 @@ log/
 
 # MacOS Cache
 .DS_Store
+
+watcher
