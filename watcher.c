@@ -35,12 +35,6 @@ void update_watch(struct watch *watch, int to_update);
 void run_command(char *command);
 
 int main(int argc, char **argv) {
-    printf("argc: %d\n", argc);
-
-    for (int i = 0; i < argc; i++) {
-        printf("argv[%d] = %s\n", i, argv[i]);
-    }
-
     // Remove first arg, which is always command name
     struct argmap args = parse_args(argc - 1, argv + 1);
 
@@ -68,13 +62,10 @@ int main(int argc, char **argv) {
             printf("inotify read failed with errno %d\n", errno);
             exit(errno);
         }
-        printf("read %zu bytes\n", readlen);
 
         for (char *ptr = buf; ptr < buf + readlen;
              ptr += sizeof(struct inotify_event) + event->len) {
             event = (struct inotify_event *)ptr;
-
-            printf("Name len = %d\n", event->len);
 
             switch (event->mask) {
             case IN_MODIFY:
@@ -160,7 +151,28 @@ struct argmap parse_args(int argc, char **argv) {
     return res;
 }
 
-void usage() { printf("TBD"); }
+void usage() {
+    fprintf(stderr,
+            "Usage: watcher --cmd=\"<command>\" <file1> [file2] ...\n\n");
+    fprintf(stderr, "Watch files for changes and run a command when they are "
+                    "modified.\n\n");
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "  --cmd=\"<command>\"    Command to execute when watched "
+                    "files change\n");
+    fprintf(stderr, "                         (required, must be in quotes if "
+                    "it contains spaces)\n\n");
+    fprintf(stderr, "Arguments:\n");
+    fprintf(stderr, "  <file1> [file2] ...   Files to watch for changes\n");
+    fprintf(stderr,
+            "                         (must exist and be accessible)\n\n");
+    fprintf(stderr, "Events monitored:\n");
+    fprintf(stderr, "  - File modification (IN_MODIFY)\n");
+    fprintf(stderr, "  - File close after write (IN_CLOSE_WRITE)\n");
+    fprintf(stderr, "  - File deletion (IN_DELETE_SELF)\n\n");
+    fprintf(stderr, "Example:\n");
+    fprintf(stderr, "  watcher --cmd=\"gcc main.c -o a.out\" main.c\n");
+    fprintf(stderr, "  watcher --cmd=\"pandoc doc.md -o doc.pdf\" doc.md\n");
+}
 
 void handle_unknown_file(char *filename) {
     printf("Unrecognized file: %s\n", filename);
